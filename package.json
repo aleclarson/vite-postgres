@@ -37,6 +37,7 @@
     "vitest": "^4.0.16"
   },
   "dependencies": {
-    "get-port": "^7.1.0"
+    "get-port": "^7.1.0",
+    "pg-gateway": "0.3.0-beta.4"
   }
 }
