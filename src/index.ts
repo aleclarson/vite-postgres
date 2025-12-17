@@ -6,14 +6,27 @@ import os from 'node:os'
 import path from 'node:path'
 import { Plugin } from 'vite'
 
-interface PostgresPluginOptions {
+export interface VitePostgresOptions {
+  /**
+   * The path to the database.
+   *
+   * Defaults to a temporary directory in the system's temp directory.
+   */
   dbPath?: string
+  /**
+   * The name of the database.
+   *
+   * Defaults to the root directory name.
+   */
   dbName?: string
+  /**
+   * A module to seed the database with.
+   */
   seedModule?: string
 }
 
 export default function vitePostgres(
-  options: PostgresPluginOptions = {}
+  options: VitePostgresOptions = {}
 ): Plugin {
   let port: number
   let dataDir: string
