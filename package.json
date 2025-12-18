@@ -37,6 +37,7 @@
     "vitest": "^4.0.16"
   },
   "dependencies": {
+    "exit-hook": "^5.0.1",
     "get-port": "^7.1.0"
   }
 }
