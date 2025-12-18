@@ -8,11 +8,15 @@ export async function managePostgresProcess({
   port,
   dbName,
   logger,
+  verbose,
+  logFilePath,
 }: {
   dataDir: string
   port: number
   dbName: string
   logger: Logger
+  verbose?: boolean
+  logFilePath?: string
 }): Promise<{ stop(): void }> {
   let stopped = false
 
@@ -47,10 +51,23 @@ export async function managePostgresProcess({
   // this process.
   logger.info(`[postgres] Starting server on port ${port}...`)
 
-  let logFd: number | null = fs.openSync(
-    path.join(dataDir, 'postgres.log'),
-    'a'
-  )
+  let inheritLogs = !!verbose
+
+  // Redirect stdout/err to log file to keep Vite console clean
+  let logFd: number | null = null
+  if (!inheritLogs && logFilePath) {
+    try {
+      fs.mkdirSync(path.dirname(logFilePath), { recursive: true })
+      // Truncate on each Vite start to avoid unbounded log growth.
+      logFd = fs.openSync(logFilePath, 'w')
+    } catch (e) {
+      inheritLogs = true
+      logger.warn(
+        `[postgres] Failed to open log file at "${logFilePath}". Falling back to inherited logs.`
+      )
+    }
+  }
+
   const closeLogFd = () => {
     if (logFd === null) return
     try {
@@ -61,8 +78,12 @@ export async function managePostgresProcess({
   }
 
   const proc = spawn('postgres', ['-D', dataDir, '-p', port.toString()], {
-    // Redirect stdout/err to log file to keep Vite console clean
-    stdio: ['ignore', logFd, logFd],
+    stdio:
+      logFd !== null
+        ? ['ignore', logFd, logFd]
+        : inheritLogs
+          ? ['ignore', 'inherit', 'inherit']
+          : ['ignore', 'ignore', 'ignore'],
   })
 
   proc.once('exit', () => {

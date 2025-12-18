@@ -23,6 +23,21 @@ export interface VitePostgresOptions {
    * A module to seed the database with.
    */
   seedModule?: string
+  /**
+   * When true, Postgres stdout/stderr is inherited by the Vite process.
+   *
+   * This disables file logging.
+   */
+  verbose?: boolean
+  /**
+   * Where to write Postgres stdout/stderr when `verbose` is false.
+   *
+   * Relative to the Vite root folder.
+   *
+   * Defaults to `${dbPath}/postgres.log` (or the temp data directory if `dbPath`
+   * is unset).
+   */
+  logFile?: string
 }
 
 export default function vitePostgres(
@@ -68,12 +83,22 @@ export default function vitePostgres(
     },
 
     async configureServer(server) {
+      const logFilePath = options.verbose
+        ? undefined
+        : options.logFile
+          ? path.isAbsolute(options.logFile)
+            ? options.logFile
+            : path.resolve(root, options.logFile)
+          : path.join(dataDir, 'postgres.log')
+
       // 1. Start the Postgres process
       const { stop } = await managePostgresProcess({
         dataDir,
         port,
         dbName,
         logger: server.config.logger,
+        verbose: options.verbose,
+        logFilePath,
       })
 
       // 2. Seed Module

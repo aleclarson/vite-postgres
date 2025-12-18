@@ -26,6 +26,8 @@ export default defineConfig({
       // dbPath: '.postgres',      // persist in-repo (optional)
       // dbName: 'myapp',          // defaults to Vite root folder name
       // seedModule: 'src/seed.ts' // optional, runs after DB is ready
+      // verbose: true,            // optional, inherit Postgres logs in Vite output
+      // logFile: 'postgres.log',  // optional, relative to Vite root (ignored if verbose)
     }),
   ],
 })
@@ -53,12 +55,16 @@ export interface VitePostgresOptions {
   dbPath?: string
   dbName?: string
   seedModule?: string
+  verbose?: boolean
+  logFile?: string
 }
 ```
 
 - `dbPath`: Postgres data directory. Default: `${os.tmpdir()}/vite-postgres/<root>-<hash>`
 - `dbName`: Database name. Default: Vite root folder name
 - `seedModule`: Module path (relative to Vite root) to execute after the DB is ready
+- `verbose`: Inherit Postgres stdout/stderr in the Vite process. Default: `false` (logs go to a file)
+- `logFile`: Where to write Postgres logs (relative to Vite root). Default: `${PGDATA}/postgres.log` (ignored if `verbose`)
 
 ## Seeding
 
@@ -74,7 +80,7 @@ The module can be TS/ESM and can run whatever you want (migrations, seed data, e
 ## Notes / behavior
 
 - Auth is initialized with `--auth=trust` (no password). This is for local dev.
-- Logs go to `${PGDATA}/postgres.log` to keep Vite output clean.
+- Logs go to `${PGDATA}/postgres.log` to keep Vite output clean (unless `verbose` is enabled).
 - The Postgres process is terminated when Vite exits (SIGINT for fast shutdown).
 
 ## Requirements
