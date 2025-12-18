@@ -76,13 +76,11 @@ export default function vitePostgres(
       process.env.PGDATABASE = dbName
       process.env.PGHOST = '127.0.0.1'
       process.env.PGDATA = dataDir
-
-      this.info(
-        `[postgres] Configured env: PGPORT=${port}, PGDATABASE=${dbName}`
-      )
     },
 
     async configureServer(server) {
+      const { logger } = server.config
+
       const logFilePath = options.verbose
         ? undefined
         : options.logFile
@@ -96,26 +94,39 @@ export default function vitePostgres(
         dataDir,
         port,
         dbName,
-        logger: server.config.logger,
+        logger,
         verbose: options.verbose,
         logFilePath,
       })
 
-      // 2. Seed Module
-      if (options.seedModule) {
-        try {
-          this.info(`[postgres] Seeding from ${options.seedModule}...`)
-          await server.ssrLoadModule(path.resolve(root, options.seedModule))
-          this.info('[postgres] Seeding complete.')
-        } catch (e) {
-          this.error(`[postgres] Seeding failed: ${e}`)
-        }
-      }
-
-      // 3. Cleanup Logic
+      // 2. Cleanup Logic
       // Ensure we kill the child process when Vite exits
       server.httpServer?.on('close', stop)
       exitHook(stop)
+
+      const onDevServerReady = async () => {
+        logger.info(
+          `[postgres] Server started on port ${port} with database "${dbName}"`
+        )
+
+        // 3. Seed Module
+        if (options.seedModule) {
+          try {
+            logger.info(`[postgres] Seeding from ${options.seedModule}...`)
+            await server.ssrLoadModule(path.resolve(root, options.seedModule))
+            logger.info('[postgres] Seeding complete.')
+          } catch (e) {
+            logger.error(`[postgres] Seeding failed: ${e}`)
+          }
+        }
+      }
+
+      return () => {
+        // Wait for the Vite dev server to clear the screen before running the
+        // seed module, so its logs are visible and in case an error occurs. The
+        // delay is arbitrary, but it seems to work well in practice.
+        setTimeout(() => onDevServerReady().catch(console.error), 150)
+      }
     },
   }
 }
